@@ -1,5 +1,5 @@
 import math
-
+import cmath
 import cupy
 from cupy.linalg import _util
 
@@ -98,10 +98,7 @@ def expm(a):
     nrmA = cupy.linalg.norm(A, ord=1).item()
 
     scale = nrmA > th13
-    if scale:
-        s = int(math.ceil(math.log2(float(nrmA) / th13))) + 1
-    else:
-        s = 1
+    s = int(math.ceil(math.log2(float(nrmA) / th13))) + 1 if scale else 1
 
     A /= 2**s
 
@@ -124,7 +121,7 @@ def expm(a):
         x = x @ x
 
     # undo preprocessing
-    x *= math.exp(mu)
+    x *= cmath.exp(mu) if cupy.iscomplexobj(mu) else math.exp(mu)
 
     return x
 
@@ -137,3 +134,46 @@ def _expm_inner(E, A, A2, A4, A6, b):
     v1 = b[12]*A6 + b[10]*A4 + b[8]*A
     v2 = b[6]*A6 + b[4]*A4 + b[2]*A2 + b[0]*E
     return u1, u2, v1, v2
+
+
+def cosm(a):  
+    """
+    Compute the matrix cosine.
+
+    This routine uses expm to compute the matrix exponentials.
+
+    Parameters
+    ----------
+    A : (N, N) array_like
+        Input array
+
+    Returns
+    -------
+    cosm : (N, N) ndarray
+        Matrix cosine of A
+    """
+    if cupy.iscomplexobj(a):
+        return 0.5*(expm(1j*a) + expm(-1j*a))
+    else:
+        return expm(1j*a).real
+
+def sinm(a):  
+    """
+    Compute the matrix sine.
+
+    This routine uses expm to compute the matrix exponentials.
+
+    Parameters
+    ----------
+    A : (N, N) array_like
+        Input array
+
+    Returns
+    -------
+    cosm : (N, N) ndarray
+        Matrix sine of A
+    """
+    if cupy.iscomplexobj(a):
+        return -0.5*(expm(1j*a) - expm(-1j*a))
+    else:
+        return expm(1j*a).imag
